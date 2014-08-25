@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>DocumentDB.AspNet.Identity</id>
+    <version>1.0.2-beta</version>
+    <title>DocumentDB.AspNet.Identity</title>
+    <authors>Tracker086</authors>
+    <owners>Tracker086</owners>
+	<licenseUrl>https://github.com/tracker086/DocumentDB.AspNet.Identity/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/tracker086/DocumentDB.AspNet.Identity</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>A DocumentDB provider for the new ASP.NET Identity framework.</description>
+    <copyright>Copyright 2014</copyright>
+  </metadata>
+</package>

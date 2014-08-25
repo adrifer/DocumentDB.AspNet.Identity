@@ -20,15 +20,20 @@ namespace DocumentDB.AspNet.Identity
         IUserStore<TUser>, 
         IUserEmailStore<TUser>, 
         IUserLockoutStore<TUser, string>,
-        IUserTwoFactorStore<TUser, string>
+        IUserTwoFactorStore<TUser, string>,
+        IUserPhoneNumberStore<TUser>
        where TUser : IdentityUser
     {
         private bool _disposed;
+
         private static DocumentClient client;
+
         private static string dataBaseName;
+
         private static bool initialized;
 
         private static Database database;
+
         private static Database Database
         {
             get
@@ -43,6 +48,7 @@ namespace DocumentDB.AspNet.Identity
         }
 
         private static string usersLink;
+
         private static IQueryable<TUser> Users
         {
             get 
@@ -470,6 +476,48 @@ namespace DocumentDB.AspNet.Identity
                 throw new ArgumentNullException("enabled");
 
             user.TwoFactorEnabled = enabled;
+            return Task.FromResult(0);
+        }
+
+        public Task<string> GetPhoneNumberAsync(TUser user)
+        {
+            ThrowIfDisposed();
+            if (user == null)
+                throw new ArgumentNullException("user");
+
+            return Task.FromResult(user.PhoneNumber);
+        }
+
+        public Task<bool> GetPhoneNumberConfirmedAsync(TUser user)
+        {
+            ThrowIfDisposed();
+            if (user == null)
+                throw new ArgumentNullException("user");
+
+            return Task.FromResult(user.PhoneNumberConfirmed);
+        }
+
+        public Task SetPhoneNumberAsync(TUser user, string phoneNumber)
+        {
+            ThrowIfDisposed();
+            if (user == null)
+                throw new ArgumentNullException("user");
+            if (phoneNumber == null)
+                throw new ArgumentNullException("phoneNumber");
+
+            user.PhoneNumber = phoneNumber;
+            return Task.FromResult(0);
+        }
+
+        public Task SetPhoneNumberConfirmedAsync(TUser user, bool confirmed)
+        {
+            ThrowIfDisposed();
+            if (user == null)
+                throw new ArgumentNullException("user");
+            if (confirmed == null)
+                throw new ArgumentNullException("confirmed");
+
+            user.PhoneNumberConfirmed = confirmed;
             return Task.FromResult(0);
         }
 
