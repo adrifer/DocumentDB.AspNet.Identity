@@ -384,9 +384,6 @@ namespace DocumentDB.AspNet.Identity
             if (user == null)
                 throw new ArgumentNullException("user");
 
-            if (confirmed == null)
-                throw new ArgumentNullException("confirmed");
-
             user.EmailConfirmed = confirmed;
             return Task.FromResult(0);
         }
@@ -472,8 +469,6 @@ namespace DocumentDB.AspNet.Identity
             ThrowIfDisposed();
             if (user == null)
                 throw new ArgumentNullException("user");
-            if (enabled == null)
-                throw new ArgumentNullException("enabled");
 
             user.TwoFactorEnabled = enabled;
             return Task.FromResult(0);
@@ -514,8 +509,6 @@ namespace DocumentDB.AspNet.Identity
             ThrowIfDisposed();
             if (user == null)
                 throw new ArgumentNullException("user");
-            if (confirmed == null)
-                throw new ArgumentNullException("confirmed");
 
             user.PhoneNumberConfirmed = confirmed;
             return Task.FromResult(0);
