@@ -186,7 +186,12 @@ namespace DocumentDB.AspNet.Identity
             if (user == null)
                 throw new ArgumentNullException("user");
 
-            await client.ReplaceDocumentAsync(usersLink, user);
+            var doc = client.CreateDocumentQuery<Document>(usersLink)
+                .Where(d => d.Id == user.Id)
+                .AsEnumerable()
+                .FirstOrDefault();
+
+            await client.ReplaceDocumentAsync(doc.SelfLink, user);
         }
 
         public void Dispose()
