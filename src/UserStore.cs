@@ -39,7 +39,12 @@ namespace DocumentDB.AspNet.Identity
             {
                 if (database == null)
                 {
-                    database = ReadOrCreateDatabase().Result;
+                    Task.Run(
+                        async () =>
+                        {
+                            database = await ReadOrCreateDatabase();
+                        }).Wait();
+
                 }
 
                 return database;
@@ -56,9 +61,15 @@ namespace DocumentDB.AspNet.Identity
             {
                 if (usersLink == null)
                 {
-                    var collection = InitializeConnection(Database.SelfLink, "Users").Result;
-                    usersLink = collection.DocumentsLink;
-                    usersSelfLink = collection.SelfLink;
+                    Task.Run(
+                        async () =>
+                        {
+                            var collection = await InitializeConnection(Database.SelfLink, "Users");
+                            usersLink = collection.DocumentsLink;
+                            usersSelfLink = collection.SelfLink;
+                        }).Wait();
+               
+                   
                     AddUserDefinedFunctionsIfNeeded(usersSelfLink);
                 }
                 return client.CreateDocumentQuery<TUser>(usersLink);
