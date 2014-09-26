@@ -39,7 +39,7 @@ namespace DocumentDB.AspNet.Identity
             {
                 if (database == null)
                 {
-                    database = ReadOrCreateDatabase().Result;
+                    database = ReadOrCreateDatabase();
                 }
 
                 return database;
@@ -56,7 +56,7 @@ namespace DocumentDB.AspNet.Identity
             {
                 if (usersLink == null)
                 {
-                    var collection = InitializeConnection(Database.SelfLink, "Users").Result;
+                    var collection = InitializeCollection(Database.SelfLink, "Users");
                     usersLink = collection.DocumentsLink;
                     usersSelfLink = collection.SelfLink;
                     AddUserDefinedFunctionsIfNeeded(usersSelfLink);
@@ -528,7 +528,7 @@ namespace DocumentDB.AspNet.Identity
             return Task.FromResult(0);
         }
 
-        private static async Task<Database> ReadOrCreateDatabase()
+        private static Database ReadOrCreateDatabase()
         {
             var databases = client.CreateDatabaseQuery()
                             .Where(db => db.Id == dataBaseName).ToArray();
@@ -539,10 +539,10 @@ namespace DocumentDB.AspNet.Identity
             }
 
             var newDatabase = new Database { Id = dataBaseName };
-            return await client.CreateDatabaseAsync(newDatabase);
+            return  client.CreateDatabaseAsync(newDatabase).Result;
         }
 
-        private static async Task<DocumentCollection> InitializeConnection(string databaseLink, string collectionId)
+        private static DocumentCollection InitializeCollection(string databaseLink, string collectionId)
         {
             var collections = client.CreateDocumentCollectionQuery(databaseLink)
                             .Where(col => col.Id == collectionId).ToArray();
@@ -552,8 +552,8 @@ namespace DocumentDB.AspNet.Identity
                 return collections.First();
             }
 
-            return await client.CreateDocumentCollectionAsync(databaseLink,
-                new DocumentCollection { Id = collectionId });
+            return client.CreateDocumentCollectionAsync(databaseLink,
+                new DocumentCollection { Id = collectionId }).Result;
         }
 
         private static void Initialize()
