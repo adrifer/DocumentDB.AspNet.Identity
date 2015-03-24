@@ -104,7 +104,7 @@ namespace DocumentDB.AspNet.Identity
                 Task.Run(
                     () =>
                     {
-                        var query = client.CreateDocumentQuery<TUser>(usersLink, string.Format("SELECT * FROM Users u WHERE UDF.HasLogin(u.Logins, '{0}', '{1}') = true", login.ProviderKey, login.LoginProvider)).AsEnumerable();
+                        var query = client.CreateDocumentQuery<TUser>(usersLink, string.Format("SELECT * FROM Users u WHERE udf.HasLogin(u.Logins, '{0}', '{1}') = true", login.ProviderKey, login.LoginProvider)).AsEnumerable();
                         var match = query.AsEnumerable().FirstOrDefault();
                         return match;
                     });
