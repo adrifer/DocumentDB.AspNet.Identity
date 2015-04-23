@@ -27,7 +27,8 @@ namespace DocumentDB.AspNet.Identity
 
         private static DocumentClient client;
 
-        private static string dataBaseName;
+        private static string database_name;
+        private static string collection_name;
 
         private static bool initialized;
 
@@ -56,7 +57,7 @@ namespace DocumentDB.AspNet.Identity
             {
                 if (usersLink == null)
                 {
-                    var collection = InitializeCollection(Database.SelfLink, "Users");
+                    var collection = InitializeCollection(Database.SelfLink, collection_name);
                     usersLink = collection.DocumentsLink;
                     usersSelfLink = collection.SelfLink;
                     AddUserDefinedFunctionsIfNeeded(usersSelfLink);
@@ -65,10 +66,11 @@ namespace DocumentDB.AspNet.Identity
             }
         }
 
-        public UserStore(Uri endPoint, string authKey, string dbName)
+        public UserStore(Uri endPoint, string authKey, string databaseName, string collectionName)
         {
             client = new DocumentClient(endPoint, authKey);
-            dataBaseName = dbName;
+            database_name = databaseName;
+            collection_name = collectionName;
 
             Initialize();
         }
@@ -531,14 +533,14 @@ namespace DocumentDB.AspNet.Identity
         private static Database ReadOrCreateDatabase()
         {
             var databases = client.CreateDatabaseQuery()
-                            .Where(db => db.Id == dataBaseName).ToArray();
+                            .Where(db => db.Id == database_name).ToArray();
 
             if (databases.Any())
             {
                 return databases.First();
             }
 
-            var newDatabase = new Database { Id = dataBaseName };
+            var newDatabase = new Database { Id = database_name };
             return  client.CreateDatabaseAsync(newDatabase).Result;
         }
 
