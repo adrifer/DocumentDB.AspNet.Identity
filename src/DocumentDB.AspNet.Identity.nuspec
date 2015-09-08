@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>DocumentDB.AspNet.Identity</id>
-    <version>1.0.7-beta</version>
+    <version>1.0.8-beta</version>
     <title>DocumentDB.AspNet.Identity</title>
     <authors>Tracker086</authors>
     <owners>Tracker086</owners>
