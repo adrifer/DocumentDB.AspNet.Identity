@@ -75,6 +75,15 @@ namespace DocumentDB.AspNet.Identity
             Initialize();
         }
 
+        public UserStore(DocumentClient docClient, string databaseName, string collectionName)
+        {
+            client = docClient;
+            database_name = databaseName;
+            collection_name = collectionName;
+
+            Initialize();
+        }
+
         public async Task AddLoginAsync(TUser user, UserLoginInfo login)
         {
             ThrowIfDisposed();
