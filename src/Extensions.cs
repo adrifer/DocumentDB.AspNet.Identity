@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace DocumentDB.AspNet.Identity
 {
@@ -17,7 +15,10 @@ namespace DocumentDB.AspNet.Identity
         {
             var item = collection.FirstOrDefault(predicate);
             if (item != null)
+            {
                 collection.Remove(item);
+            }
+
             return collection;
         }
     }
