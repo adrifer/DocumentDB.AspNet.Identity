@@ -10,76 +10,64 @@ using System.Security.Claims;
 
 namespace DocumentDB.AspNet.Identity
 {
-    public class UserStore<TUser> :
-        IUserLoginStore<TUser>,
-        IUserClaimStore<TUser>,
-        IUserRoleStore<TUser>,
-        IUserPasswordStore<TUser>,
-        IUserSecurityStampStore<TUser>,
-        IUserStore<TUser>,
-        IUserEmailStore<TUser>,
-        IUserLockoutStore<TUser, string>,
-        IUserTwoFactorStore<TUser, string>,
-        IUserPhoneNumberStore<TUser>
-       where TUser : IdentityUser
+    public class UserStore<TUser> : IUserLoginStore<TUser>, IUserClaimStore<TUser>, IUserRoleStore<TUser>, IUserPasswordStore<TUser>, IUserSecurityStampStore<TUser>, IUserStore<TUser>, IUserEmailStore<TUser>, IUserLockoutStore<TUser, string>, IUserTwoFactorStore<TUser, string>, IUserPhoneNumberStore<TUser> where TUser : IdentityUser
     {
         private bool _disposed;
 
-        private static DocumentClient client;
+        private static DocumentClient _client;
 
-        private static string database_name;
-        private static string collection_name;
+        private static string _databaseName;
+        private static string _collectionId;
 
-        private static bool initialized;
+        private static bool _initialized;
 
-        private static Database database;
+        private static Database _database;
 
         private static Database Database
         {
             get
             {
-                if (database == null)
+                if (_database == null)
                 {
-                    database = ReadOrCreateDatabase();
+                    _database = ReadOrCreateDatabase();
                 }
 
-                return database;
+                return _database;
             }
         }
 
-        private static string usersLink;
-
-        private static string usersSelfLink;
+        private static string _usersLink;
+        private static string _usersSelfLink;
 
         private static IQueryable<TUser> Users
         {
             get
             {
-                if (usersLink == null)
+                if (_usersLink == null)
                 {
-                    var collection = InitializeCollection(Database.SelfLink, collection_name);
-                    usersLink = collection.DocumentsLink;
-                    usersSelfLink = collection.SelfLink;
-                    AddUserDefinedFunctionsIfNeeded(usersSelfLink);
+                    var collection = InitializeCollection(Database.SelfLink, _collectionId);
+                    _usersLink = collection.DocumentsLink;
+                    _usersSelfLink = collection.SelfLink;
+                    AddUserDefinedFunctionsIfNeeded(_usersSelfLink);
                 }
-                return client.CreateDocumentQuery<TUser>(usersLink);
+                return _client.CreateDocumentQuery<TUser>(_usersLink);
             }
         }
 
-        public UserStore(Uri endPoint, string authKey, string databaseName, string collectionName)
+        public UserStore(Uri endPoint, string authKey, string databaseName, string collectionId)
         {
-            client = new DocumentClient(endPoint, authKey);
-            database_name = databaseName;
-            collection_name = collectionName;
+            _client = new DocumentClient(endPoint, authKey);
+            _databaseName = databaseName;
+            _collectionId = collectionId;
 
             Initialize();
         }
 
-        public UserStore(DocumentClient docClient, string databaseName, string collectionName)
+        public UserStore(DocumentClient docClient, string databaseName, string collectionId)
         {
-            client = docClient;
-            database_name = databaseName;
-            collection_name = collectionName;
+            _client = docClient;
+            _databaseName = databaseName;
+            _collectionId = collectionId;
 
             Initialize();
         }
@@ -101,7 +89,7 @@ namespace DocumentDB.AspNet.Identity
                 user.Logins.Add(login);
             }
 
-            await this.UpdateUserAsync(user);
+            await UpdateUserAsync(user);
         }
 
         public async Task<TUser> FindAsync(UserLoginInfo login)
@@ -112,13 +100,13 @@ namespace DocumentDB.AspNet.Identity
 
             return
                 await
-                Task.Run(
-                    () =>
-                    {
-                        var query = client.CreateDocumentQuery<TUser>(usersLink, string.Format("SELECT * FROM Users u WHERE udf.HasLogin(u.Logins, '{0}', '{1}') = true", login.ProviderKey, login.LoginProvider)).AsEnumerable();
-                        var match = query.AsEnumerable().FirstOrDefault();
-                        return match;
-                    });
+                    Task.Run(
+                        () =>
+                        {
+                            var query = _client.CreateDocumentQuery<TUser>(_usersLink, string.Format("SELECT * FROM {0} u WHERE udf.HasLogin(u.Logins, '{1}', '{2}') = true", _collectionId, login.ProviderKey, login.LoginProvider)).AsEnumerable();
+                            var match = query.AsEnumerable().FirstOrDefault();
+                            return match;
+                        });
         }
 
         public Task<IList<UserLoginInfo>> GetLoginsAsync(TUser user)
@@ -153,8 +141,7 @@ namespace DocumentDB.AspNet.Identity
             }
 
             user.Id = Guid.NewGuid().ToString();
-
-            await client.CreateDocumentAsync(usersLink, user);
+            await _client.CreateDocumentAsync(_usersLink, user);
         }
 
         public async Task DeleteAsync(TUser user)
@@ -163,11 +150,11 @@ namespace DocumentDB.AspNet.Identity
             if (user == null)
                 throw new ArgumentNullException("user");
 
-            var doc = client.CreateDocumentQuery(usersLink)
-                .Where(u => u.Id == user.Id).FirstOrDefault();
-
-            await client.DeleteDocumentAsync(doc.SelfLink);
-
+            var doc = _client.CreateDocumentQuery(_usersLink).FirstOrDefault(u => u.Id == user.Id);
+            if (doc != null)
+            {
+                await _client.DeleteDocumentAsync(doc.SelfLink);
+            }
         }
 
         public async Task<TUser> FindByIdAsync(string userId)
@@ -179,8 +166,8 @@ namespace DocumentDB.AspNet.Identity
             return await Task.Run(() =>
             {
                 var user = Users.Where(u => u.Id == userId)
-                .AsEnumerable()
-                .FirstOrDefault();
+                    .AsEnumerable()
+                    .FirstOrDefault();
 
                 return user;
             });
@@ -190,17 +177,18 @@ namespace DocumentDB.AspNet.Identity
         {
             ThrowIfDisposed();
             if (userName == null)
+            {
                 throw new ArgumentNullException("userName");
+            }
 
             return await Task.Run(() =>
             {
                 var user = Users.Where(u => u.UserName == userName)
-                .AsEnumerable()
-                .FirstOrDefault();
+                    .AsEnumerable()
+                    .FirstOrDefault();
 
                 return user;
-            }
-            );
+            });
         }
 
         public async Task UpdateAsync(TUser user)
@@ -211,7 +199,7 @@ namespace DocumentDB.AspNet.Identity
                 throw new ArgumentNullException("user");
             }
 
-            await this.UpdateUserAsync(user);
+            await UpdateUserAsync(user);
         }
 
         public void Dispose()
@@ -223,7 +211,9 @@ namespace DocumentDB.AspNet.Identity
         {
             ThrowIfDisposed();
             if (user == null)
+            {
                 throw new ArgumentNullException("user");
+            }
 
             if (!user.Claims.Any(x => x.ClaimType == claim.Type && x.ClaimValue == claim.Value))
             {
@@ -241,7 +231,9 @@ namespace DocumentDB.AspNet.Identity
         {
             ThrowIfDisposed();
             if (user == null)
+            {
                 throw new ArgumentNullException("user");
+            }
 
             IList<Claim> result = user.Claims.Select(c => new Claim(c.ClaimType, c.ClaimValue)).ToList();
             return Task.FromResult(result);
@@ -251,7 +243,9 @@ namespace DocumentDB.AspNet.Identity
         {
             ThrowIfDisposed();
             if (user == null)
+            {
                 throw new ArgumentNullException("user");
+            }
 
             user.Claims.RemoveAll(x => x.ClaimType == claim.Type && x.ClaimValue == claim.Value);
             return Task.FromResult(0);
@@ -261,10 +255,14 @@ namespace DocumentDB.AspNet.Identity
         {
             ThrowIfDisposed();
             if (user == null)
+            {
                 throw new ArgumentNullException("user");
+            }
 
             if (roleName == null)
+            {
                 throw new ArgumentNullException("roleName");
+            }
 
             if (!user.Roles.Any(x => x.Equals(roleName)))
             {
@@ -278,9 +276,11 @@ namespace DocumentDB.AspNet.Identity
         {
             ThrowIfDisposed();
             if (user == null)
+            {
                 throw new ArgumentNullException("user");
+            }
 
-            IList<string> result = user.Roles.ToIList();
+            var result = user.Roles.ToIList();
             return Task.FromResult(result);
         }
 
@@ -288,13 +288,16 @@ namespace DocumentDB.AspNet.Identity
         {
             ThrowIfDisposed();
             if (user == null)
+            {
                 throw new ArgumentNullException("user");
+            }
 
             if (roleName == null)
+            {
                 throw new ArgumentNullException("roleName");
+            }
 
             var isInRole = user.Roles.Any(x => x.Equals(roleName));
-
             return Task.FromResult(isInRole);
         }
 
@@ -302,13 +305,16 @@ namespace DocumentDB.AspNet.Identity
         {
             ThrowIfDisposed();
             if (user == null)
+            {
                 throw new ArgumentNullException("user");
+            }
 
             if (roleName == null)
+            {
                 throw new ArgumentNullException("roleName");
+            }
 
             user.Roles.Remove(x => x.Equals(roleName));
-
             return Task.FromResult(0);
         }
 
@@ -316,7 +322,9 @@ namespace DocumentDB.AspNet.Identity
         {
             ThrowIfDisposed();
             if (user == null)
+            {
                 throw new ArgumentNullException("user");
+            }
 
             return Task.FromResult(user.PasswordHash);
         }
@@ -334,7 +342,9 @@ namespace DocumentDB.AspNet.Identity
         {
             ThrowIfDisposed();
             if (user == null)
+            {
                 throw new ArgumentNullException("user");
+            }
 
             user.PasswordHash = passwordHash;
             return Task.FromResult(0);
@@ -344,7 +354,9 @@ namespace DocumentDB.AspNet.Identity
         {
             ThrowIfDisposed();
             if (user == null)
+            {
                 throw new ArgumentNullException("user");
+            }
 
             return Task.FromResult(user.SecurityStamp);
         }
@@ -353,7 +365,9 @@ namespace DocumentDB.AspNet.Identity
         {
             ThrowIfDisposed();
             if (user == null)
+            {
                 throw new ArgumentNullException("user");
+            }
 
             user.SecurityStamp = stamp;
             return Task.FromResult(0);
@@ -363,10 +377,12 @@ namespace DocumentDB.AspNet.Identity
         {
             ThrowIfDisposed();
             if (email == null)
+            {
                 throw new ArgumentNullException("email");
+            }
 
             return await Task.Run(() =>
-                    Users.Where(u => u.Email == email)
+                Users.Where(u => u.Email == email)
                     .AsEnumerable()
                     .FirstOrDefault()
                 );
@@ -376,7 +392,9 @@ namespace DocumentDB.AspNet.Identity
         {
             ThrowIfDisposed();
             if (user == null)
+            {
                 throw new ArgumentNullException("user");
+            }
 
             return Task.FromResult(user.Email);
         }
@@ -385,7 +403,9 @@ namespace DocumentDB.AspNet.Identity
         {
             ThrowIfDisposed();
             if (user == null)
+            {
                 throw new ArgumentNullException("user");
+            }
 
             return Task.FromResult(user.EmailConfirmed);
         }
@@ -394,10 +414,14 @@ namespace DocumentDB.AspNet.Identity
         {
             ThrowIfDisposed();
             if (user == null)
+            {
                 throw new ArgumentNullException("user");
+            }
 
             if (email == null)
+            {
                 throw new ArgumentNullException("email");
+            }
 
             user.Email = email;
             return Task.FromResult(0);
@@ -407,7 +431,9 @@ namespace DocumentDB.AspNet.Identity
         {
             ThrowIfDisposed();
             if (user == null)
+            {
                 throw new ArgumentNullException("user");
+            }
 
             user.EmailConfirmed = confirmed;
             return Task.FromResult(0);
@@ -417,7 +443,9 @@ namespace DocumentDB.AspNet.Identity
         {
             ThrowIfDisposed();
             if (user == null)
+            {
                 throw new ArgumentNullException("user");
+            }
 
             return Task.FromResult(user.AccessFailedCount);
         }
@@ -426,7 +454,9 @@ namespace DocumentDB.AspNet.Identity
         {
             ThrowIfDisposed();
             if (user == null)
+            {
                 throw new ArgumentNullException("user");
+            }
 
             return Task.FromResult(user.LockoutEnabled);
         }
@@ -444,7 +474,9 @@ namespace DocumentDB.AspNet.Identity
         {
             ThrowIfDisposed();
             if (user == null)
+            {
                 throw new ArgumentNullException("user");
+            }
 
             user.AccessFailedCount++;
             return Task.FromResult(user.AccessFailedCount);
@@ -454,7 +486,9 @@ namespace DocumentDB.AspNet.Identity
         {
             ThrowIfDisposed();
             if (user == null)
+            {
                 throw new ArgumentNullException("user");
+            }
 
             user.AccessFailedCount = 0;
             return Task.FromResult(0);
@@ -464,7 +498,9 @@ namespace DocumentDB.AspNet.Identity
         {
             ThrowIfDisposed();
             if (user == null)
+            {
                 throw new ArgumentNullException("user");
+            }
 
             user.LockoutEnabled = enabled;
             return Task.FromResult(0);
@@ -474,7 +510,9 @@ namespace DocumentDB.AspNet.Identity
         {
             ThrowIfDisposed();
             if (user == null)
+            {
                 throw new ArgumentNullException("user");
+            }
 
             user.LockoutEnd = lockoutEnd;
             return Task.FromResult(0);
@@ -503,7 +541,9 @@ namespace DocumentDB.AspNet.Identity
         {
             ThrowIfDisposed();
             if (user == null)
+            {
                 throw new ArgumentNullException("user");
+            }
 
             return Task.FromResult(user.PhoneNumber);
         }
@@ -512,7 +552,9 @@ namespace DocumentDB.AspNet.Identity
         {
             ThrowIfDisposed();
             if (user == null)
+            {
                 throw new ArgumentNullException("user");
+            }
 
             return Task.FromResult(user.PhoneNumberConfirmed);
         }
@@ -521,9 +563,14 @@ namespace DocumentDB.AspNet.Identity
         {
             ThrowIfDisposed();
             if (user == null)
+            {
                 throw new ArgumentNullException("user");
+            }
+
             if (phoneNumber == null)
+            {
                 throw new ArgumentNullException("phoneNumber");
+            }
 
             user.PhoneNumber = phoneNumber;
             return Task.FromResult(0);
@@ -533,7 +580,9 @@ namespace DocumentDB.AspNet.Identity
         {
             ThrowIfDisposed();
             if (user == null)
+            {
                 throw new ArgumentNullException("user");
+            }
 
             user.PhoneNumberConfirmed = confirmed;
             return Task.FromResult(0);
@@ -541,39 +590,41 @@ namespace DocumentDB.AspNet.Identity
 
         private static Database ReadOrCreateDatabase()
         {
-            var databases = client.CreateDatabaseQuery()
-                            .Where(db => db.Id == database_name).ToArray();
-
+            var databases = _client.CreateDatabaseQuery().Where(db => db.Id == _databaseName).ToArray();
             if (databases.Any())
             {
                 return databases.First();
             }
 
-            var newDatabase = new Database { Id = database_name };
-            return  client.CreateDatabaseAsync(newDatabase).Result;
+            var newDatabase = new Database
+            {
+                Id = _databaseName
+            };
+
+            return _client.CreateDatabaseAsync(newDatabase).Result;
         }
 
         private static DocumentCollection InitializeCollection(string databaseLink, string collectionId)
         {
-            var collections = client.CreateDocumentCollectionQuery(databaseLink)
-                            .Where(col => col.Id == collectionId).ToArray();
+            var collections = _client.CreateDocumentCollectionQuery(databaseLink).Where(col => col.Id == collectionId).ToArray();
 
             if (collections.Any())
             {
                 return collections.First();
             }
 
-            return client.CreateDocumentCollectionAsync(databaseLink,
-                new DocumentCollection { Id = collectionId }).Result;
+            return _client.CreateDocumentCollectionAsync(databaseLink, new DocumentCollection {Id = collectionId}).Result;
         }
 
         private static void Initialize()
         {
-            if (!initialized)
+            if (_initialized)
             {
-                var init = Users;
-                initialized = true;
+                return;
             }
+
+            var init = Users;
+            _initialized = true;
         }
 
         private void ThrowIfDisposed()
@@ -584,13 +635,13 @@ namespace DocumentDB.AspNet.Identity
             }
         }
 
-        private async Task<dynamic> GetSpecificUserAsync(string id)
+        private static async Task<dynamic> GetSpecificUserAsync(string id)
         {
             return await Task.Run(
                 () =>
                 {
                     dynamic user =
-                        client.CreateDocumentQuery<Document>(usersSelfLink, string.Format("SELECT * FROM Users u WHERE u.id = \"{0}\"", id))
+                        _client.CreateDocumentQuery<Document>(_usersSelfLink, string.Format("SELECT * FROM {0} u WHERE u.id = \"{1}\"", _collectionId, id))
                             .AsEnumerable()
                             .FirstOrDefault();
 
@@ -600,32 +651,15 @@ namespace DocumentDB.AspNet.Identity
 
         private async Task UpdateUserAsync(TUser user)
         {
-            var doc = await this.GetSpecificUserAsync(user.Id);
-
+            var doc = await GetSpecificUserAsync(user.Id);
             if (doc != null)
             {
-                doc.AccessFailedCount = user.AccessFailedCount;
-                doc.Claims = user.Claims;
-                doc.Email = user.Email;
-                doc.EmailConfirmed = user.EmailConfirmed;
-                doc.LockoutEnabled = user.LockoutEnabled;
-                doc.LockoutEnd = user.LockoutEnd;
-                doc.Logins = user.Logins;
-                doc.PasswordHash = user.PasswordHash ?? string.Empty;
-                doc.PhoneNumber = user.PhoneNumber ?? string.Empty;
-                doc.PhoneNumberConfirmed = user.PhoneNumberConfirmed;
-                doc.Roles = user.Roles;
-                doc.SecurityStamp = user.SecurityStamp;
-                doc.TwoFactorEnabled = user.TwoFactorEnabled;
-                doc.UserName = user.UserName;
-
-                await client.ReplaceDocumentAsync(doc);
+                await _client.ReplaceDocumentAsync(UriFactory.CreateDocumentUri(Database.Id, _collectionId, user.Id), user);
             }
         }
 
         private static void AddUserDefinedFunctionsIfNeeded(string selfLinkForUsers)
         {
-
             var hasLogin = new UserDefinedFunction
             {
                 Body = @"function(logins, providerKey, loginProvider) { 
@@ -643,7 +677,7 @@ namespace DocumentDB.AspNet.Identity
                 Id = "HasLogin"
             };
 
-            client.CreateUserDefinedFunctionAsync(selfLinkForUsers, hasLogin);
+            _client.CreateUserDefinedFunctionAsync(selfLinkForUsers, hasLogin);
         }
     }
 }
