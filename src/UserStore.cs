@@ -140,7 +140,11 @@ namespace DocumentDB.AspNet.Identity
                 throw new ArgumentNullException("user");
             }
 
-            user.Id = Guid.NewGuid().ToString();
+            if (string.IsNullOrEmpty(user.Id))
+            {
+                user.Id = Guid.NewGuid().ToString();
+            }
+
             await _client.CreateDocumentAsync(_usersLink, user);
         }
 
