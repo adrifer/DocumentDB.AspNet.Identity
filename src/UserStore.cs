@@ -59,42 +59,58 @@ namespace DocumentDB.AspNet.Identity
 
         private async Task CreateDatabaseIfNotExistsAsync()
         {
+            bool databaseEnsured;
+
             try
             {
                 await _client.ReadDatabaseAsync(UriFactory.CreateDatabaseUri(_database));
+                databaseEnsured = true;
             }
             catch (DocumentClientException exception)
             {
                 if (exception.StatusCode == System.Net.HttpStatusCode.NotFound)
                 {
-                    await _client.CreateDatabaseAsync(new Database {Id = _database});
+                    databaseEnsured = false;
                 }
                 else
                 {
                     throw;
                 }
+            }
+
+            if (!databaseEnsured)
+            {
+                await _client.CreateDatabaseAsync(new Database {Id = _database});
             }
         }
 
         private async Task CreateCollectionIfNotExistsAsync()
         {
+            bool collectionEnsured;
+
             try
             {
                 await _client.ReadDocumentCollectionAsync(UriFactory.CreateDocumentCollectionUri(_database, _collection));
+                collectionEnsured = true;
             }
             catch (DocumentClientException exception)
             {
                 if (exception.StatusCode == System.Net.HttpStatusCode.NotFound)
                 {
-                    await _client.CreateDocumentCollectionAsync(
-                        UriFactory.CreateDatabaseUri(_database),
-                        new DocumentCollection {Id = _collection},
-                        new RequestOptions {OfferThroughput = 400});
+                    collectionEnsured = false;
                 }
                 else
                 {
                     throw;
                 }
+            }
+
+            if (!collectionEnsured)
+            {
+                await _client.CreateDocumentCollectionAsync(
+                        UriFactory.CreateDatabaseUri(_database),
+                        new DocumentCollection { Id = _collection },
+                        new RequestOptions { OfferThroughput = 400 });
             }
         }
 
