@@ -12,7 +12,8 @@ namespace Tests.Tests
 
         public CustomUserPropertiesTests()
         {
-            _userStore = new UserStore<TestUserType>(new Uri(Endpoint), Key, Userdb, Usercoll);
+            Init();
+            _userStore = new UserStore<TestUserType>(Client, Database, Collection, true);
         }
 
         private TestUserType _testUser = new TestUserType
@@ -58,7 +59,6 @@ namespace Tests.Tests
             Assert.IsFalse(savedUser.IsAwesome);
             Assert.AreSame(savedUser.TestTest, "test test text");
         }
-
     }
 
     public class TestUserType : IdentityUser

@@ -82,15 +82,14 @@ namespace DocumentDB.AspNet.Identity
 
         public IdentityUser()
         {
-            this.Claims = new List<IdentityUserClaim>();
-            this.Roles = new List<string>();
-            this.Logins = new List<UserLoginInfo>();
+            Claims = new List<IdentityUserClaim>();
+            Roles = new List<string>();
+            Logins = new List<UserLoginInfo>();
         }
 
-        public IdentityUser(string userName)
-            : this()
+        public IdentityUser(string userName) : this()
         {
-            this.UserName = userName;
+            UserName = userName;
         }
     }
 
