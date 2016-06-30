@@ -11,7 +11,10 @@ using System.Security.Claims;
 
 namespace DocumentDB.AspNet.Identity
 {
-    public class UserStore<TUser> : IUserLoginStore<TUser>, IUserClaimStore<TUser>, IUserRoleStore<TUser>, IUserPasswordStore<TUser>, IUserSecurityStampStore<TUser>, IUserStore<TUser>, IUserEmailStore<TUser>, IUserLockoutStore<TUser, string>, IUserTwoFactorStore<TUser, string>, IUserPhoneNumberStore<TUser> where TUser : IdentityUser
+    public class UserStore<TUser> : IUserLoginStore<TUser>, IUserClaimStore<TUser>, IUserRoleStore<TUser>, IUserPasswordStore<TUser>, 
+        IUserSecurityStampStore<TUser>, IUserStore<TUser>, IUserEmailStore<TUser>, IUserLockoutStore<TUser, string>, 
+        IUserTwoFactorStore<TUser, string>, IUserPhoneNumberStore<TUser>, IQueryableUserStore<TUser, String>
+        where TUser : IdentityUser
     {
         private bool _disposed;
 
@@ -114,7 +117,7 @@ namespace DocumentDB.AspNet.Identity
             }
         }
 
-        public async Task<IEnumerable<TUser>> Users(Expression<Func<TUser, bool>> predicate)
+        public async Task<IEnumerable<TUser>> GetUsers(Expression<Func<TUser, bool>> predicate)
         {
             var query = _client.CreateDocumentQuery<TUser>(_documentCollection)
                 .Where(predicate)
@@ -160,7 +163,7 @@ namespace DocumentDB.AspNet.Identity
                 throw new ArgumentNullException("login");
             }
 
-            return (from user in await Users(user => user.Logins != null)
+            return (from user in await GetUsers(user => user.Logins != null)
                     from userLogin in user.Logins
                     where userLogin.LoginProvider == login.LoginProvider && userLogin.ProviderKey == userLogin.ProviderKey
                     select user).FirstOrDefault();
@@ -239,7 +242,7 @@ namespace DocumentDB.AspNet.Identity
                 throw new ArgumentNullException("userId");
             }
 
-            return (await Users(user => user.Id == userId)).FirstOrDefault();
+            return (await GetUsers(user => user.Id == userId)).FirstOrDefault();
         }
 
         public async Task<TUser> FindByNameAsync(string userName)
@@ -251,7 +254,7 @@ namespace DocumentDB.AspNet.Identity
                 throw new ArgumentNullException("userName");
             }
 
-            return (await Users(user => user.UserName == userName)).FirstOrDefault();
+            return (await GetUsers(user => user.UserName == userName)).FirstOrDefault();
         }
 
         public async Task UpdateAsync(TUser user)
@@ -460,7 +463,7 @@ namespace DocumentDB.AspNet.Identity
                 throw new ArgumentNullException("email");
             }
 
-            return (await Users(user => user.Email == email)).FirstOrDefault();
+            return (await GetUsers(user => user.Email == email)).FirstOrDefault();
         }
 
         public Task<string> GetEmailAsync(TUser user)
@@ -703,7 +706,7 @@ namespace DocumentDB.AspNet.Identity
 
         private async Task UpdateUserAsync(TUser user)
         {
-            var existingUser = (await Users(u => u.Id == user.Id)).FirstOrDefault();
+            var existingUser = (await GetUsers(u => u.Id == user.Id)).FirstOrDefault();
             if (existingUser == null)
             {
                 throw new InvalidOperationException("You can't call Update on a User you haven't created yet.");
@@ -716,5 +719,7 @@ namespace DocumentDB.AspNet.Identity
         {
             _disposed = true;
         }
+
+        public IQueryable<TUser> Users => _client.CreateDocumentQuery<TUser>(_documentCollection);
     }
 }
