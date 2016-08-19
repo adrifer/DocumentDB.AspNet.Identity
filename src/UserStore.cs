@@ -165,7 +165,7 @@ namespace DocumentDB.AspNet.Identity
 
             return (from user in await GetUsers(user => user.Logins != null)
                     from userLogin in user.Logins
-                    where userLogin.LoginProvider == login.LoginProvider && userLogin.ProviderKey == userLogin.ProviderKey
+                    where userLogin.LoginProvider == login.LoginProvider && userLogin.ProviderKey == login.ProviderKey
                     select user).FirstOrDefault();
         }
 
