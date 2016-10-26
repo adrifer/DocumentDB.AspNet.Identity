@@ -10,11 +10,13 @@ namespace DocumentDB.AspNet.Identity
         [JsonProperty(PropertyName = "id")]
         public string Id { get; set; }
 
+        [JsonProperty(PropertyName = "userName")]
         public string UserName { get; set; }
 
         /// <summary>
         ///     Email
         /// </summary>
+        [JsonProperty(PropertyName = "email")]
         public virtual string Email { get; set; }
 
         /// <summary>
