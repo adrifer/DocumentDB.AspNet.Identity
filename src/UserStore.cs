@@ -119,11 +119,11 @@ namespace DocumentDB.AspNet.Identity
 
         public async Task<IEnumerable<TUser>> GetUsers(Expression<Func<TUser, bool>> predicate)
         {
-            var query = _client.CreateDocumentQuery<TUser>(_documentCollection)
-                .Where(predicate)
+            var query = _client.CreateDocumentQuery<TUser>(_documentCollection, new FeedOptions { EnableCrossPartitionQuery = true })
+                .Where(predicate)                
                 .AsDocumentQuery();
 
-            var results = new List<TUser>();
+            var results = new List<TUser>();            
             while (query.HasMoreResults)
             {
                 results.AddRange(await query.ExecuteNextAsync<TUser>());
