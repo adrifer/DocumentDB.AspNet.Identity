@@ -40,6 +40,8 @@ namespace Tests.Tests
         [TestMethod]
         public async Task UpdatesAreAppliedToUserWithCustomProperties()
         {
+            var testText = "test test text";
+
             await CanCreateUserWithCustomProperties();
 
             var savedUser = await _userStore.FindByEmailAsync(_testUser.Email);
@@ -49,15 +51,15 @@ namespace Tests.Tests
             }
 
             savedUser.IsAwesome = false;
-            savedUser.TestTest = "test test text";
+            savedUser.TestTest = testText;
 
             await _userStore.UpdateAsync(savedUser);
 
             savedUser = await _userStore.FindByEmailAsync(_testUser.Email);
-
+            
             Assert.IsNotNull(savedUser);
-            Assert.IsFalse(savedUser.IsAwesome);
-            Assert.AreSame(savedUser.TestTest, "test test text");
+            Assert.IsFalse(savedUser.IsAwesome);            
+            Assert.AreEqual(testText, savedUser.TestTest);
         }
     }
 
