@@ -1,4 +1,4 @@
-DocumentDB.AspNet.Identity [![Build status](https://ci.appveyor.com/api/projects/status/7itwm6k31x4phtkx)](https://ci.appveyor.com/project/AdrianFernandez/documentdb-aspnet-identity)
+DocumentDB.AspNet.Identity
 ==========================
 A DocumentDB provider for the new ASP.NET Identity framework.
 
