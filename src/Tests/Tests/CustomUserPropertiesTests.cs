@@ -18,8 +18,8 @@ namespace Tests.Tests
 
         private TestUserType _testUser = new TestUserType
         {
-            UserName = "customtest@test.com",
-            Email = "customtest@test.com",
+            UserName = "user-"+Guid.NewGuid(),
+            Email = Guid.NewGuid() + "@test.com",
             IsAwesome = true,
             TestTest = "this just some some text..."
         };
@@ -49,7 +49,8 @@ namespace Tests.Tests
             }
 
             savedUser.IsAwesome = false;
-            savedUser.TestTest = "test test text";
+            var newText = savedUser.TestTest + " newText";
+            savedUser.TestTest = newText;
 
             await _userStore.UpdateAsync(savedUser);
 
@@ -57,7 +58,7 @@ namespace Tests.Tests
 
             Assert.IsNotNull(savedUser);
             Assert.IsFalse(savedUser.IsAwesome);
-            Assert.AreSame(savedUser.TestTest, "test test text");
+            Assert.AreEqual(savedUser.TestTest, newText);
         }
     }
 
