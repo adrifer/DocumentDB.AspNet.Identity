@@ -163,10 +163,10 @@ namespace DocumentDB.AspNet.Identity
                 throw new ArgumentNullException("login");
             }
 
-            return (from user in await GetUsers(user => user.Logins != null)
-                    from userLogin in user.Logins
-                    where userLogin.LoginProvider == login.LoginProvider && userLogin.ProviderKey == userLogin.ProviderKey
-                    select user).FirstOrDefault();
+            var query = $"SELECT * FROM c where array_contains(c.Logins, {{ \"LoginProvider\": \"{login.LoginProvider}\", \"ProviderKey\": \"{login.ProviderKey}\" }})";
+            var q = _client.CreateDocumentQuery<TUser>(_documentCollection, query).AsDocumentQuery();
+
+            return (await q.ExecuteNextAsync<TUser>().ConfigureAwait(false)).FirstOrDefault();
         }
 
         public Task<IList<UserLoginInfo>> GetLoginsAsync(TUser user)
